@@ -23,12 +23,14 @@ namespace MedicielBack.services
                 using (var connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
-                    var command = new SqlCommand("INSERT INTO MedicalRecords (DoctorId, PatientName, Diagnosis, Treatment, Date) OUTPUT INSERTED.Id VALUES (@DoctorId, @PatientName, @Diagnosis, @Treatment, @Date)", connection);
+                    var command = new SqlCommand("INSERT INTO MedicalRecords (DoctorId, PatientName, Diagnosis, Treatment, Date, CreationDate, ModificationDate) OUTPUT INSERTED.Id VALUES (@DoctorId, @PatientName, @Diagnosis, @Treatment, @Date, @CreationDate, @ModificationDate)", connection);
                     command.Parameters.AddWithValue("@DoctorId", doctorId);
                     command.Parameters.AddWithValue("@PatientName", patientName);
                     command.Parameters.AddWithValue("@Diagnosis", diagnosis);
                     command.Parameters.AddWithValue("@Treatment", treatment);
                     command.Parameters.AddWithValue("@Date", DateTime.UtcNow);
+                    command.Parameters.AddWithValue("@CreationDate", DateTime.UtcNow);
+                    command.Parameters.AddWithValue("@ModificationDate", DateTime.UtcNow);
 
                     var id = (int)command.ExecuteScalar();
 
@@ -39,7 +41,9 @@ namespace MedicielBack.services
                         PatientName = patientName,
                         Diagnosis = diagnosis,
                         Treatment = treatment,
-                        Date = DateTime.UtcNow
+                        Date = DateTime.UtcNow,
+                        CreationDate = DateTime.UtcNow,
+                        ModificationDate = DateTime.UtcNow
                     };
 
                     auditService.LogInfo($"Medical record created: {record.Id} by doctor {doctorId}");
@@ -60,10 +64,11 @@ namespace MedicielBack.services
                 using (var connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
-                    var command = new SqlCommand("UPDATE MedicalRecords SET Diagnosis = @Diagnosis, Treatment = @Treatment, Date = @Date WHERE Id = @Id AND DoctorId = @DoctorId", connection);
+                    var command = new SqlCommand("UPDATE MedicalRecords SET Diagnosis = @Diagnosis, Treatment = @Treatment, Date = @Date, ModificationDate = @ModificationDate WHERE Id = @Id AND DoctorId = @DoctorId", connection);
                     command.Parameters.AddWithValue("@Diagnosis", diagnosis);
                     command.Parameters.AddWithValue("@Treatment", treatment);
                     command.Parameters.AddWithValue("@Date", DateTime.UtcNow);
+                    command.Parameters.AddWithValue("@ModificationDate", DateTime.UtcNow);
                     command.Parameters.AddWithValue("@Id", recordId);
                     command.Parameters.AddWithValue("@DoctorId", doctorId);
 
@@ -80,7 +85,8 @@ namespace MedicielBack.services
                         DoctorId = doctorId,
                         Diagnosis = diagnosis,
                         Treatment = treatment,
-                        Date = DateTime.UtcNow
+                        Date = DateTime.UtcNow,
+                        ModificationDate = DateTime.UtcNow
                     };
 
                     auditService.LogInfo($"Medical record updated: {record.Id} by doctor {doctorId}");
@@ -117,7 +123,9 @@ namespace MedicielBack.services
                                 PatientName = (string)reader["PatientName"],
                                 Diagnosis = (string)reader["Diagnosis"],
                                 Treatment = (string)reader["Treatment"],
-                                Date = (DateTime)reader["Date"]
+                                Date = (DateTime)reader["Date"],
+                                CreationDate = (DateTime)reader["CreationDate"],
+                                ModificationDate = (DateTime)reader["ModificationDate"]
                             });
                         }
                     }
@@ -154,7 +162,9 @@ namespace MedicielBack.services
                                 PatientName = (string)reader["PatientName"],
                                 Diagnosis = (string)reader["Diagnosis"],
                                 Treatment = (string)reader["Treatment"],
-                                Date = (DateTime)reader["Date"]
+                                Date = (DateTime)reader["Date"],
+                                CreationDate = (DateTime)reader["CreationDate"],
+                                ModificationDate = (DateTime)reader["ModificationDate"]
                             };
                         }
                     }
@@ -190,7 +200,9 @@ namespace MedicielBack.services
                                 PatientName = (string)reader["PatientName"],
                                 Diagnosis = (string)reader["Diagnosis"],
                                 Treatment = (string)reader["Treatment"],
-                                Date = (DateTime)reader["Date"]
+                                Date = (DateTime)reader["Date"],
+                                CreationDate = (DateTime)reader["CreationDate"],
+                                ModificationDate = (DateTime)reader["ModificationDate"]
                             });
                         }
                     }

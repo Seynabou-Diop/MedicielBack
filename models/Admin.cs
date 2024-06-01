@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MedicielBack.models
 {
@@ -12,7 +8,8 @@ namespace MedicielBack.models
         public string Username { get; set; }
         public string PasswordHash { get; set; }
         public string Salt { get; set; }
-        public string Token { get; set; }
+        public Token Token { get; set; }
+        public DateTime CreationDate { get; set; }
+        public DateTime ModificationDate { get; set; }
     }
-
 }

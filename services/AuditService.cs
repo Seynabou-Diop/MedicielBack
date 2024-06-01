@@ -5,8 +5,6 @@ using System.Data.SqlClient;
 
 namespace MedicielBack.services
 {
-
-
     public class AuditService
     {
         private readonly string connectionString;
@@ -49,18 +47,24 @@ namespace MedicielBack.services
 
         private void SaveLogToDatabase(AuditLog log)
         {
-            using (var connection = new SqlConnection(connectionString))
+            try
             {
-                connection.Open();
-                var command = new SqlCommand("INSERT INTO AuditLogs (UserId, Action, Timestamp, Level) VALUES (@UserId, @Action, @Timestamp, @Level)", connection);
-                command.Parameters.AddWithValue("@UserId", (object)log.UserId ?? DBNull.Value);
-                command.Parameters.AddWithValue("@Action", log.Action);
-                command.Parameters.AddWithValue("@Timestamp", log.Timestamp);
-                command.Parameters.AddWithValue("@Level", log.Level);
+                using (var connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+                    var command = new SqlCommand("INSERT INTO AuditLogs (UserId, Action, Timestamp, Level) VALUES (@UserId, @Action, @Timestamp, @Level)", connection);
+                    command.Parameters.AddWithValue("@UserId", (object)log.UserId ?? DBNull.Value);
+                    command.Parameters.AddWithValue("@Action", log.Action);
+                    command.Parameters.AddWithValue("@Timestamp", log.Timestamp);
+                    command.Parameters.AddWithValue("@Level", log.Level);
 
-                command.ExecuteNonQuery();
+                    command.ExecuteNonQuery();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[{DateTime.UtcNow}] ERROR: Failed to save log to database. Exception: {ex.Message}");
             }
         }
     }
-
 }

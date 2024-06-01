@@ -38,10 +38,12 @@ namespace MedicielBack.services
                     var salt = GenerateSalt();
                     var passwordHash = HashPassword(password, salt);
 
-                    command = new SqlCommand("INSERT INTO Doctors (Matricule, PasswordHash, Salt) OUTPUT INSERTED.Id VALUES (@Matricule, @PasswordHash, @Salt)", connection);
+                    command = new SqlCommand("INSERT INTO Doctors (Matricule, PasswordHash, Salt, CreationDate, ModificationDate) OUTPUT INSERTED.Id VALUES (@Matricule, @PasswordHash, @Salt, @CreationDate, @ModificationDate)", connection);
                     command.Parameters.AddWithValue("@Matricule", matricule);
                     command.Parameters.AddWithValue("@PasswordHash", passwordHash);
                     command.Parameters.AddWithValue("@Salt", salt);
+                    command.Parameters.AddWithValue("@CreationDate", DateTime.UtcNow);
+                    command.Parameters.AddWithValue("@ModificationDate", DateTime.UtcNow);
 
                     var id = (int)command.ExecuteScalar();
 
@@ -50,7 +52,9 @@ namespace MedicielBack.services
                         Id = id,
                         Matricule = matricule,
                         PasswordHash = passwordHash,
-                        Salt = salt
+                        Salt = salt,
+                        CreationDate = DateTime.UtcNow,
+                        ModificationDate = DateTime.UtcNow
                     };
 
                     auditService.LogInfo($"Doctor registered: {matricule} (ID: {doctor.Id})");
@@ -83,13 +87,17 @@ namespace MedicielBack.services
                                 Id = (int)reader["Id"],
                                 Matricule = (string)reader["Matricule"],
                                 PasswordHash = (string)reader["PasswordHash"],
-                                Salt = (string)reader["Salt"]
+                                Salt = (string)reader["Salt"],
+                                CreationDate = (DateTime)reader["CreationDate"],
+                                ModificationDate = (DateTime)reader["ModificationDate"]
                             };
 
                             var passwordHash = HashPassword(password, doctor.Salt);
                             if (passwordHash == doctor.PasswordHash)
                             {
-                                doctor.Token = GenerateToken();
+                                var token = GenerateToken();
+                                doctor.Token = token;
+                                doctor.ModificationDate = DateTime.UtcNow;
                                 UpdateToken(doctor);
                                 auditService.LogInfo($"Doctor logged in: {matricule} (ID: {doctor.Id})");
                                 return doctor;
@@ -115,6 +123,7 @@ namespace MedicielBack.services
                 if (doctor != null)
                 {
                     doctor.Token = null;
+                    doctor.ModificationDate = DateTime.UtcNow;
                     UpdateToken(doctor);
                     auditService.LogInfo($"Doctor logged out: {doctor.Matricule} (ID: {doctor.Id})");
                 }
@@ -125,7 +134,7 @@ namespace MedicielBack.services
             }
         }
 
-        public Doctor GetDoctorByToken(string token)
+        public Doctor GetDoctorByToken(string tokenValue)
         {
             try
             {
@@ -133,20 +142,31 @@ namespace MedicielBack.services
                 {
                     connection.Open();
                     var command = new SqlCommand("SELECT * FROM Doctors WHERE Token = @Token", connection);
-                    command.Parameters.AddWithValue("@Token", token);
+                    command.Parameters.AddWithValue("@Token", tokenValue);
 
                     using (var reader = command.ExecuteReader())
                     {
                         if (reader.Read())
                         {
-                            return new Doctor
+                            var doctor = new Doctor
                             {
                                 Id = (int)reader["Id"],
                                 Matricule = (string)reader["Matricule"],
                                 PasswordHash = (string)reader["PasswordHash"],
                                 Salt = (string)reader["Salt"],
-                                Token = (string)reader["Token"]
+                                Token = new Token
+                                {
+                                    Value = (string)reader["Token"],
+                                    ExpirationDate = (DateTime)reader["TokenExpiration"]
+                                },
+                                CreationDate = (DateTime)reader["CreationDate"],
+                                ModificationDate = (DateTime)reader["ModificationDate"]
                             };
+
+                            if (doctor.Token.ExpirationDate > DateTime.UtcNow)
+                            {
+                                return doctor;
+                            }
                         }
                     }
                 }
@@ -154,7 +174,7 @@ namespace MedicielBack.services
             }
             catch (Exception ex)
             {
-                auditService.LogError($"GetDoctorByToken failed for token '{token}'. Exception: {ex.Message}");
+                auditService.LogError($"GetDoctorByToken failed for token '{tokenValue}'. Exception: {ex.Message}");
                 return null;
             }
         }
@@ -180,7 +200,9 @@ namespace MedicielBack.services
                                 Matricule = (string)reader["Matricule"],
                                 PasswordHash = (string)reader["PasswordHash"],
                                 Salt = (string)reader["Salt"],
-                                Token = reader["Token"] as string
+                                Token = reader["Token"] as Token,
+                                CreationDate = (DateTime)reader["CreationDate"],
+                                ModificationDate = (DateTime)reader["ModificationDate"]
                             });
                         }
                     }
@@ -202,8 +224,10 @@ namespace MedicielBack.services
                 using (var connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
-                    var command = new SqlCommand("UPDATE Doctors SET Token = @Token WHERE Id = @Id", connection);
-                    command.Parameters.AddWithValue("@Token", (object)doctor.Token ?? DBNull.Value);
+                    var command = new SqlCommand("UPDATE Doctors SET Token = @Token, TokenExpiration = @TokenExpiration, ModificationDate = @ModificationDate WHERE Id = @Id", connection);
+                    command.Parameters.AddWithValue("@Token", (object)doctor.Token?.Value ?? DBNull.Value);
+                    command.Parameters.AddWithValue("@TokenExpiration", (object)doctor.Token?.ExpirationDate ?? DBNull.Value);
+                    command.Parameters.AddWithValue("@ModificationDate", doctor.ModificationDate);
                     command.Parameters.AddWithValue("@Id", doctor.Id);
                     command.ExecuteNonQuery();
                 }
@@ -234,9 +258,14 @@ namespace MedicielBack.services
             }
         }
 
-        private string GenerateToken()
+        private Token GenerateToken()
         {
-            return Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+            return new Token
+            {
+                Value = Convert.ToBase64String(Guid.NewGuid().ToByteArray()),
+                ExpirationDate = DateTime.UtcNow.AddHours(1),
+                RefreshToken = Convert.ToBase64String(Guid.NewGuid().ToByteArray())
+            };
         }
     }
 }

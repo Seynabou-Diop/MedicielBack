@@ -1,22 +1,22 @@
-﻿using System;
+﻿using MedicielBack.controllers;
+using MedicielBack.models;
+using MedicielBack.services;
+using System;
 using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Collections.Generic;
-using MedicielBack.controllers;
-using MedicielBack.models;
-using MedicielBack.services;
 
 public class Program
 {
     public static void Main(string[] args)
     {
         var auditService = new AuditService();
-        
-            var doctorService = new DoctorService(auditService);
-            var adminController = new AdminController(auditService);
+        var adminController = new AdminController(auditService);
+        var doctorService = new DoctorService(auditService);
         var doctorController = new DoctorController(auditService);
         var recordController = new MedicalRecordController(auditService, doctorService);
+
 
         var listener = new HttpListener();
         listener.Prefixes.Add("http://localhost:5000/");
@@ -33,56 +33,56 @@ public class Program
             {
                 switch (request.Url.AbsolutePath.ToLower())
                 {
-                    case "/registeradmin":
+                    case "/admin/register":
                         if (request.HttpMethod == "POST")
                         {
                             HandleRegisterAdmin(request, response, adminController);
                         }
                         break;
 
-                    case "/loginadmin":
+                    case "/admin/login":
                         if (request.HttpMethod == "POST")
                         {
                             HandleLoginAdmin(request, response, adminController);
                         }
                         break;
 
-                    case "/logoutadmin":
+                    case "/admin/logout":
                         if (request.HttpMethod == "POST")
                         {
                             HandleLogoutAdmin(request, response, adminController);
                         }
                         break;
 
-                    case "/getalladmins":
+                    case "/admins":
                         if (request.HttpMethod == "GET")
                         {
                             HandleGetAllAdmins(request, response, adminController);
                         }
                         break;
 
-                    case "/registerdoctor":
+                    case "/doctor/register":
                         if (request.HttpMethod == "POST")
                         {
                             HandleRegisterDoctor(request, response, adminController);
                         }
                         break;
 
-                    case "/logindoctor":
+                    case "/doctor/login":
                         if (request.HttpMethod == "POST")
                         {
                             HandleLoginDoctor(request, response, doctorController);
                         }
                         break;
 
-                    case "/logoutdoctor":
+                    case "/doctor/logout":
                         if (request.HttpMethod == "POST")
                         {
                             HandleLogoutDoctor(request, response, doctorController);
                         }
                         break;
 
-                    case "/getalldoctors":
+                    case "/doctors":
                         if (request.HttpMethod == "GET")
                         {
                             HandleGetAllDoctors(request, response, doctorController);
@@ -103,7 +103,7 @@ public class Program
                         }
                         break;
 
-                    case "/records/get":
+                    case "/records":
                         if (request.HttpMethod == "GET")
                         {
                             HandleGetRecords(request, response, recordController);
@@ -117,7 +117,7 @@ public class Program
                         }
                         break;
 
-                    case "/getallmedicalrecords":
+                    case "/medicalrecords":
                         if (request.HttpMethod == "GET")
                         {
                             HandleGetAllMedicalRecords(request, response, recordController);
@@ -161,6 +161,7 @@ public class Program
         if (admin != null)
         {
             response.StatusCode = 201;
+            responseString = JsonSerializer.Serialize(new { message = "Admin registered successfully." });
         }
         else
         {
@@ -192,6 +193,7 @@ public class Program
         if (admin != null)
         {
             response.StatusCode = 200;
+            responseString = JsonSerializer.Serialize(new { message = "Admin logged in successfully.", admin });
         }
         else
         {
@@ -270,6 +272,7 @@ public class Program
         if (doctor != null)
         {
             response.StatusCode = 201;
+            responseString = JsonSerializer.Serialize(new { message = "Doctor registered successfully." });
         }
         else
         {
@@ -301,6 +304,7 @@ public class Program
         if (doctor != null)
         {
             response.StatusCode = 200;
+            responseString = JsonSerializer.Serialize(new { message = "Doctor logged in successfully.", doctor });
         }
         else
         {
@@ -380,6 +384,7 @@ public class Program
         if (record != null)
         {
             response.StatusCode = 201;
+            responseString = JsonSerializer.Serialize(new { message = "Record created successfully.", record });
         }
         else
         {
@@ -413,6 +418,7 @@ public class Program
         if (record != null)
         {
             response.StatusCode = 200;
+            responseString = JsonSerializer.Serialize(new { message = "Record updated successfully.", record });
         }
         else
         {

@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "dgSpecHash": "l355Pyb+2xG20gFNd62E3P2OdJPMsmNKQkmEgMuvky/rXQaftNJern+ffAUEGDNJQXqHvkdyyihUjae0tutR4w==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\PC\\Desktop\\DIC-3\\mansi\\project\\mediciel-back\\MedicielBack\\MedicielBack.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\PC\\.nuget\\packages\\microsoft.netcore.platforms\\3.1.0\\microsoft.netcore.platforms.3.1.0.nupkg.sha512",
+    "C:\\Users\\PC\\.nuget\\packages\\microsoft.win32.registry\\4.7.0\\microsoft.win32.registry.4.7.0.nupkg.sha512",
+    "C:\\Users\\PC\\.nuget\\packages\\runtime.native.system.data.sqlclient.sni\\4.7.0\\runtime.native.system.data.sqlclient.sni.4.7.0.nupkg.sha512",
+    "C:\\Users\\PC\\.nuget\\packages\\runtime.win-arm64.runtime.native.system.data.sqlclient.sni\\4.4.0\\runtime.win-arm64.runtime.native.system.data.sqlclient.sni.4.4.0.nupkg.sha512",
+    "C:\\Users\\PC\\.nuget\\packages\\runtime.win-x64.runtime.native.system.data.sqlclient.sni\\4.4.0\\runtime.win-x64.runtime.native.system.data.sqlclient.sni.4.4.0.nupkg.sha512",
+    "C:\\Users\\PC\\.nuget\\packages\\runtime.win-x86.runtime.native.system.data.sqlclient.sni\\4.4.0\\runtime.win-x86.runtime.native.system.data.sqlclient.sni.4.4.0.nupkg.sha512",
+    "C:\\Users\\PC\\.nuget\\packages\\system.configuration.configurationmanager\\9.0.0-preview.4.24266.19\\system.configuration.configurationmanager.9.0.0-preview.4.24266.19.nupkg.sha512",
+    "C:\\Users\\PC\\.nuget\\packages\\system.data.sqlclient\\4.8.6\\system.data.sqlclient.4.8.6.nupkg.sha512",
+    "C:\\Users\\PC\\.nuget\\packages\\system.diagnostics.eventlog\\9.0.0-preview.4.24266.19\\system.diagnostics.eventlog.9.0.0-preview.4.24266.19.nupkg.sha512",
+    "C:\\Users\\PC\\.nuget\\packages\\system.security.accesscontrol\\4.7.0\\system.security.accesscontrol.4.7.0.nupkg.sha512",
+    "C:\\Users\\PC\\.nuget\\packages\\system.security.cryptography.protecteddata\\9.0.0-preview.4.24266.19\\system.security.cryptography.protecteddata.9.0.0-preview.4.24266.19.nupkg.sha512",
+    "C:\\Users\\PC\\.nuget\\packages\\system.security.principal.windows\\4.7.0\\system.security.principal.windows.4.7.0.nupkg.sha512"
+  ],
+  "logs": []
+}

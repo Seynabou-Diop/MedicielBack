@@ -52,7 +52,7 @@ namespace MedicielBack.services
                 using (var connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
-                    var command = new SqlCommand("INSERT INTO AuditLogs (UserId, Action, Timestamp, Level) VALUES (@UserId, @Action, @Timestamp, @Level)", connection);
+                    var command = new SqlCommand("INSERT INTO audit_log (user_id, action, timestamp, level) VALUES (@UserId, @Action, @Timestamp, @Level)", connection);
                     command.Parameters.AddWithValue("@UserId", (object)log.UserId ?? DBNull.Value);
                     command.Parameters.AddWithValue("@Action", log.Action);
                     command.Parameters.AddWithValue("@Timestamp", log.Timestamp);

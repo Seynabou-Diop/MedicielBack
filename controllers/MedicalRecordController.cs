@@ -1,6 +1,6 @@
 ﻿using MedicielBack.models;
 using MedicielBack.services;
-using System;
+using System.Collections.Generic;
 
 namespace MedicielBack.controllers
 {
@@ -8,97 +8,90 @@ namespace MedicielBack.controllers
     {
         private readonly MedicalRecordService recordService;
         private readonly DoctorService doctorService;
-        private readonly AuditService auditService;
 
-        public MedicalRecordController(AuditService auditService, DoctorService doctorService)
+        public MedicalRecordController(AuditService auditService, DoctorService doctorService, EncryptionService encryptionService)
         {
-            this.auditService = auditService;
+            this.recordService = new MedicalRecordService(auditService, encryptionService);
             this.doctorService = doctorService;
-            recordService = new MedicalRecordService(auditService);
         }
 
-        public MedicalRecord CreateRecord(string token, string patientName, string diagnosis, string treatment)
+        public MedicalRecord CreateRecord(string token, string patientName, string diagnosis, string treatment, string patientPhone, DateTime patientDateOfBirth, string patientAddress, string emergencyContactName, string emergencyContactPhone, string insuranceProvider, string policyNumber, string allergies, string medications, string previousConditions, string notes)
         {
+            var role = doctorService.GetUserRole(token);
+            if (role != "Doctor")
+            {
+                return null; // Only doctors can create medical records
+            }
+
             var doctor = doctorService.GetDoctorByToken(token);
             if (doctor == null)
             {
-                auditService.LogWarning($"Failed to create record: Invalid doctor token");
                 return null;
             }
 
-            var record = recordService.CreateRecord(doctor.Id, patientName, diagnosis, treatment);
-            if (record != null)
-            {
-                auditService.LogInfo($"Record created successfully for doctor: {doctor.Matricule}");
-            }
-            else
-            {
-                auditService.LogError($"Failed to create record for doctor: {doctor.Matricule}");
-            }
-            return record;
+            return recordService.CreateRecord(doctor.Id, patientName, diagnosis, treatment, patientPhone, patientDateOfBirth, patientAddress, emergencyContactName, emergencyContactPhone, insuranceProvider, policyNumber, allergies, medications, previousConditions, notes);
         }
 
-        public MedicalRecord UpdateRecord(string token, int recordId, string diagnosis, string treatment)
+        public MedicalRecord UpdateRecord(string token, int recordId, string diagnosis, string treatment, string patientPhone, DateTime patientDateOfBirth, string patientAddress, string emergencyContactName, string emergencyContactPhone, string insuranceProvider, string policyNumber, string allergies, string medications, string previousConditions, string notes)
         {
+            var role = doctorService.GetUserRole(token);
+            if (role != "Doctor")
+            {
+                return null; // Only doctors can update medical records
+            }
+
             var doctor = doctorService.GetDoctorByToken(token);
             if (doctor == null)
             {
-                auditService.LogWarning($"Failed to update record: Invalid doctor token");
                 return null;
             }
 
-            var record = recordService.UpdateRecord(doctor.Id, recordId, diagnosis, treatment);
-            if (record != null)
-            {
-                auditService.LogInfo($"Record updated successfully for doctor: {doctor.Matricule}");
-            }
-            else
-            {
-                auditService.LogError($"Failed to update record for doctor: {doctor.Matricule}");
-            }
-            return record;
+            return recordService.UpdateRecord(doctor.Id, recordId, diagnosis, treatment, patientPhone, patientDateOfBirth, patientAddress, emergencyContactName, emergencyContactPhone, insuranceProvider, policyNumber, allergies, medications, previousConditions, notes);
         }
 
         public List<MedicalRecord> GetRecords(string token)
         {
+            var role = doctorService.GetUserRole(token);
+            if (role != "Doctor" && role != "Admin")
+            {
+                return null; // Only doctors and admins can view records
+            }
+
             var doctor = doctorService.GetDoctorByToken(token);
             if (doctor == null)
             {
-                auditService.LogWarning($"Failed to get records: Invalid doctor token");
                 return null;
             }
 
-            var records = recordService.GetRecordsByDoctor(doctor.Id);
-            auditService.LogInfo($"Records retrieved for doctor: {doctor.Matricule}");
-            return records;
+            return recordService.GetRecordsByDoctor(doctor.Id);
         }
 
         public MedicalRecord GetRecord(string token, int recordId)
         {
+            var role = doctorService.GetUserRole(token);
+            if (role != "Doctor" && role != "Admin")
+            {
+                return null; // Only doctors and admins can view records
+            }
+
             var doctor = doctorService.GetDoctorByToken(token);
             if (doctor == null)
             {
-                auditService.LogWarning($"Failed to get record: Invalid doctor token");
                 return null;
             }
 
-            var record = recordService.GetRecordById(doctor.Id, recordId);
-            if (record != null)
-            {
-                auditService.LogInfo($"Record retrieved for doctor: {doctor.Matricule}");
-            }
-            else
-            {
-                auditService.LogWarning($"Failed to retrieve record for doctor: {doctor.Matricule}");
-            }
-            return record;
+            return recordService.GetRecordById(doctor.Id, recordId);
         }
 
-        public List<MedicalRecord> GetAllMedicalRecords()
+        public List<MedicalRecord> GetAllMedicalRecords(string token)
         {
-            var records = recordService.GetAllMedicalRecords();
-            auditService.LogInfo("All medical records retrieved.");
-            return records;
+            var role = doctorService.GetUserRole(token);
+            if (role != "Admin")
+            {
+                return null; // Only admins can view all records
+            }
+
+            return recordService.GetAllMedicalRecords();
         }
     }
 }

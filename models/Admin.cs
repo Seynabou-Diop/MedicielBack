@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace MedicielBack.models
+﻿namespace MedicielBack.models
 {
     public class Admin
     {
@@ -11,5 +9,6 @@ namespace MedicielBack.models
         public Token Token { get; set; }
         public DateTime CreationDate { get; set; }
         public DateTime ModificationDate { get; set; }
+        public string Role { get; set; } = "Admin";  // Default role for Admin
     }
 }

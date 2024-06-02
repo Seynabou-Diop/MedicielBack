@@ -1,6 +1,7 @@
 ﻿using MedicielBack.models;
 using MedicielBack.services;
 using System;
+using System.Collections.Generic;
 
 namespace MedicielBack.controllers
 {
@@ -8,55 +9,26 @@ namespace MedicielBack.controllers
     {
         private readonly AdminService adminService;
         private readonly DoctorService doctorService;
-        private readonly AuditService auditService;
 
-        public AdminController(AuditService auditService)
+        public AdminController(AuditService auditService, TokenService tokenService, EncryptionService encryptionService)
         {
-            this.auditService = auditService;
-            adminService = new AdminService(auditService);
-            doctorService = new DoctorService(auditService);
+            adminService = new AdminService(auditService, tokenService);
+            doctorService = new DoctorService(auditService, tokenService, encryptionService);
         }
 
         public Admin RegisterAdmin(string username, string password)
         {
-            var admin = adminService.Register(username, password);
-            if (admin != null)
-            {
-                auditService.LogInfo($"Admin registered successfully: {username}");
-            }
-            else
-            {
-                auditService.LogError($"Failed to register admin: {username}");
-            }
-            return admin;
+            return adminService.Register(username, password);
         }
 
         public Admin LoginAdmin(string username, string password)
         {
-            var admin = adminService.Authenticate(username, password);
-            if (admin != null)
-            {
-                auditService.LogInfo($"Admin logged in successfully: {username}");
-            }
-            else
-            {
-                auditService.LogWarning($"Failed to login admin: {username}");
-            }
-            return admin;
+            return adminService.Authenticate(username, password);
         }
 
-        public void LogoutAdmin(string token)
+        public void LogoutAdmin(Admin admin)
         {
-            var admin = adminService.GetAdminByToken(token);
-            if (admin != null)
-            {
-                adminService.Logout(admin);
-                auditService.LogInfo($"Admin logged out: {admin.Username}");
-            }
-            else
-            {
-                auditService.LogWarning($"Failed to logout admin: Invalid token");
-            }
+            adminService.Logout(admin);
         }
 
         public Admin GetAdminByToken(string token)
@@ -69,25 +41,15 @@ namespace MedicielBack.controllers
             return adminService.GetAllAdmins();
         }
 
-        public Doctor RegisterDoctor(string token, string matricule, string password)
+        public Doctor RegisterDoctor(string token, string matricule, string password, string phone, DateTime dateOfBirth, string specialty, string department, string email, string address, string gender, string qualifications, int yearsOfExperience)
         {
-            var admin = adminService.GetAdminByToken(token);
-            if (admin == null)
+            var role = adminService.GetUserRole(token);
+            if (role != "Admin")
             {
-                auditService.LogWarning($"Failed to register doctor: Invalid admin token");
-                return null;
+                return null; // Only admins can register doctors
             }
 
-            var doctor = doctorService.Register(matricule, password);
-            if (doctor != null)
-            {
-                auditService.LogInfo($"Doctor registered successfully: {matricule}");
-            }
-            else
-            {
-                auditService.LogError($"Failed to register doctor: {matricule}");
-            }
-            return doctor;
+            return doctorService.Register(matricule, password, phone, dateOfBirth, specialty, department, email, address, gender, qualifications, yearsOfExperience);
         }
     }
 }

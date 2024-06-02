@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -11,7 +12,14 @@ namespace MedicielBack.services
     {
         private readonly string connectionString;
         private readonly AuditService auditService;
+        private readonly TokenService tokenService;
 
+        public AdminService(AuditService auditService, TokenService tokenService)
+        {
+            this.connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
+            this.auditService = auditService;
+            this.tokenService = tokenService;
+        }
         public AdminService(AuditService auditService)
         {
             this.connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
@@ -25,7 +33,7 @@ namespace MedicielBack.services
                 using (var connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
-                    var command = new SqlCommand("SELECT COUNT(*) FROM Admins WHERE Username = @Username", connection);
+                    var command = new SqlCommand("SELECT COUNT(*) FROM admin WHERE Username = @Username", connection);
                     command.Parameters.AddWithValue("@Username", username);
                     var count = (int)command.ExecuteScalar();
 
@@ -38,7 +46,7 @@ namespace MedicielBack.services
                     var salt = GenerateSalt();
                     var passwordHash = HashPassword(password, salt);
 
-                    command = new SqlCommand("INSERT INTO Admins (Username, PasswordHash, Salt, CreationDate, ModificationDate) OUTPUT INSERTED.Id VALUES (@Username, @PasswordHash, @Salt, @CreationDate, @ModificationDate)", connection);
+                    command = new SqlCommand("INSERT INTO admin (username, password_hash, salt, creation_date, modification_date) OUTPUT INSERTED.id VALUES (@Username, @PasswordHash, @Salt, @CreationDate, @ModificationDate)", connection);
                     command.Parameters.AddWithValue("@Username", username);
                     command.Parameters.AddWithValue("@PasswordHash", passwordHash);
                     command.Parameters.AddWithValue("@Salt", salt);
@@ -57,7 +65,7 @@ namespace MedicielBack.services
                         ModificationDate = DateTime.UtcNow
                     };
 
-                    auditService.LogInfo($"Admin registered: {username} (ID: {admin.Id})");
+                    auditService.LogInfo($"Admin registered successfully: {username} (ID: {admin.Id})");
                     return admin;
                 }
             }
@@ -70,68 +78,67 @@ namespace MedicielBack.services
 
         public Admin Authenticate(string username, string password)
         {
-            try
+            using (var connection = new SqlConnection(connectionString))
             {
-                using (var connection = new SqlConnection(connectionString))
+                connection.Open();
+                var command = new SqlCommand("SELECT * FROM admins WHERE username = @Username", connection);
+                command.Parameters.AddWithValue("@Username", username);
+
+                using (var reader = command.ExecuteReader())
                 {
-                    connection.Open();
-                    var command = new SqlCommand("SELECT * FROM Admins WHERE Username = @Username", connection);
-                    command.Parameters.AddWithValue("@Username", username);
-
-                    using (var reader = command.ExecuteReader())
+                    if (reader.Read())
                     {
-                        if (reader.Read())
+                        var admin = new Admin
                         {
-                            var admin = new Admin
-                            {
-                                Id = (int)reader["Id"],
-                                Username = (string)reader["Username"],
-                                PasswordHash = (string)reader["PasswordHash"],
-                                Salt = (string)reader["Salt"],
-                                CreationDate = (DateTime)reader["CreationDate"],
-                                ModificationDate = (DateTime)reader["ModificationDate"]
-                            };
+                            Id = (int)reader["id"],
+                            Username = (string)reader["username"],
+                            PasswordHash = (string)reader["password_hash"],
+                            Salt = (string)reader["salt"]
+                        };
 
-                            var passwordHash = HashPassword(password, admin.Salt);
-                            if (passwordHash == admin.PasswordHash)
+                        var passwordHash = HashPassword(password, admin.Salt);
+                        if (passwordHash == admin.PasswordHash)
+                        {
+                            var token = tokenService.GenerateToken(admin.Id, "Admin");
+                            admin.Token = new Token
                             {
-                                admin.Token = GenerateToken();
-                                admin.ModificationDate = DateTime.UtcNow;
-                                UpdateToken(admin);
-                                auditService.LogInfo($"Admin logged in: {username} (ID: {admin.Id})");
-                                return admin;
-                            }
+                                Value = token,
+                                ExpirationDate = DateTime.UtcNow.AddHours(1)
+                            };
+                            UpdateToken(admin);
+                            auditService.LogInfo($"Admin logged in: {username} (ID: {admin.Id})");
+                            return admin;
                         }
                     }
-
-                    auditService.LogWarning($"Authentication failed: Invalid username or password for username '{username}'.");
-                    return null;
                 }
-            }
-            catch (Exception ex)
-            {
-                auditService.LogError($"Authentication failed for username '{username}'. Exception: {ex.Message}");
+
+                auditService.LogWarning($"Authentication failed: Invalid username or password for username '{username}'.");
                 return null;
             }
         }
 
+        public string GetUserRole(string token)
+        {
+            var claimsPrincipal = tokenService.ValidateToken(token);
+            if (claimsPrincipal == null)
+            {
+                return null;
+            }
+
+            var roleClaim = claimsPrincipal.FindFirst(ClaimTypes.Role);
+            return roleClaim?.Value;
+        }
+
         public void Logout(Admin admin)
         {
-            try
+            if (admin != null)
             {
-                if (admin != null)
-                {
-                    admin.Token = null;
-                    admin.ModificationDate = DateTime.UtcNow;
-                    UpdateToken(admin);
-                    auditService.LogInfo($"Admin logged out: {admin.Username} (ID: {admin.Id})");
-                }
-            }
-            catch (Exception ex)
-            {
-                auditService.LogError($"Logout failed for admin '{admin.Username}'. Exception: {ex.Message}");
+                admin.Token = null;
+                UpdateToken(admin);
+                auditService.LogInfo($"Admin logged out: {admin.Username} (ID: {admin.Id})");
             }
         }
+
 
         public Admin GetAdminByToken(string tokenValue)
         {
@@ -140,7 +147,7 @@ namespace MedicielBack.services
                 using (var connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
-                    var command = new SqlCommand("SELECT * FROM Admins WHERE Token = @Token", connection);
+                    var command = new SqlCommand("SELECT * FROM admin WHERE token = @Token", connection);
                     command.Parameters.AddWithValue("@Token", tokenValue);
 
                     using (var reader = command.ExecuteReader())
@@ -149,17 +156,17 @@ namespace MedicielBack.services
                         {
                             var admin = new Admin
                             {
-                                Id = (int)reader["Id"],
-                                Username = (string)reader["Username"],
-                                PasswordHash = (string)reader["PasswordHash"],
-                                Salt = (string)reader["Salt"],
+                                Id = (int)reader["id"],
+                                Username = (string)reader["username"],
+                                PasswordHash = (string)reader["password_hash"],
+                                Salt = (string)reader["salt"],
                                 Token = new Token
                                 {
-                                    Value = (string)reader["Token"],
-                                    ExpirationDate = (DateTime)reader["TokenExpiration"]
+                                    Value = (string)reader["token"],
+                                    ExpirationDate = (DateTime)reader["token_expiration"]
                                 },
-                                CreationDate = (DateTime)reader["CreationDate"],
-                                ModificationDate = (DateTime)reader["ModificationDate"]
+                                CreationDate = (DateTime)reader["creation_date"],
+                                ModificationDate = (DateTime)reader["modification_date"]
                             };
 
                             if (admin.Token.ExpirationDate > DateTime.UtcNow)
@@ -187,7 +194,7 @@ namespace MedicielBack.services
                 using (var connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
-                    var command = new SqlCommand("SELECT * FROM Admins", connection);
+                    var command = new SqlCommand("SELECT * FROM admin", connection);
 
                     using (var reader = command.ExecuteReader())
                     {
@@ -195,23 +202,23 @@ namespace MedicielBack.services
                         {
                             admins.Add(new Admin
                             {
-                                Id = (int)reader["Id"],
-                                Username = (string)reader["Username"],
-                                PasswordHash = (string)reader["PasswordHash"],
-                                Salt = (string)reader["Salt"],
-                                Token = reader["Token"] as Token,
-                                CreationDate = (DateTime)reader["CreationDate"],
-                                ModificationDate = (DateTime)reader["ModificationDate"]
+                                Id = (int)reader["id"],
+                                Username = (string)reader["username"],
+                                PasswordHash = (string)reader["password_hash"],
+                                Salt = (string)reader["salt"],
+                                Token = reader["token"] as Token,
+                                CreationDate = (DateTime)reader["creation_date"],
+                                ModificationDate = (DateTime)reader["modification_date"]
                             });
                         }
                     }
                 }
-                auditService.LogInfo("Retrieved all admins.");
+                auditService.LogInfo("Retrieved successfully all admins.");
                 return admins;
             }
             catch (Exception ex)
             {
-                auditService.LogError($"GetAllAdmins failed. Exception: {ex.Message}");
+                auditService.LogError($"Operation GetAllAdmins failed. Exception: {ex.Message}");
                 return admins;
             }
         }
@@ -223,7 +230,7 @@ namespace MedicielBack.services
                 using (var connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
-                    var command = new SqlCommand("UPDATE Admins SET Token = @Token, TokenExpiration = @TokenExpiration, ModificationDate = @ModificationDate WHERE Id = @Id", connection);
+                    var command = new SqlCommand("UPDATE admin SET token = @Token, token_expiration = @TokenExpiration, modification_date = @ModificationDate WHERE id = @Id", connection);
                     command.Parameters.AddWithValue("@Token", (object)admin.Token?.Value ?? DBNull.Value);
                     command.Parameters.AddWithValue("@TokenExpiration", (object)admin.Token?.ExpirationDate ?? DBNull.Value);
                     command.Parameters.AddWithValue("@ModificationDate", admin.ModificationDate);

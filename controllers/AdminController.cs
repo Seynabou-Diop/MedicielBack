@@ -51,5 +51,27 @@ namespace MedicielBack.controllers
 
             return doctorService.Register(matricule, password, phone, dateOfBirth, specialty, department, email, address, gender, qualifications, yearsOfExperience);
         }
+
+        public Doctor UpdateDoctor(string token, int doctorId, string phone, DateTime dateOfBirth, string specialty, string department, string email, string address, string gender, string qualifications, int yearsOfExperience)
+        {
+            var role = adminService.GetUserRole(token);
+            if (role != "Admin")
+            {
+                return null; // Only admins can update doctors
+            }
+
+            return doctorService.UpdateDoctor(doctorId, phone, dateOfBirth, specialty, department, email, address, gender, qualifications, yearsOfExperience);
+        }
+
+        public bool DeleteDoctor(string token, int doctorId)
+        {
+            var role = adminService.GetUserRole(token);
+            if (role != "Admin")
+            {
+                return false; // Only admins can delete doctors
+            }
+
+            return doctorService.DeleteDoctor(doctorId);
+        }
     }
 }

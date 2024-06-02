@@ -1,19 +1,26 @@
-﻿using MedicielBack.controllers;
-using MedicielBack.models;
-using MedicielBack.services;
+﻿using Microsoft.Extensions.Configuration;
 using System;
+using System.IO;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using System.Collections.Generic;
+using MedicielBack.controllers;
+using MedicielBack.services;
 
 public class Program
 {
     public static void Main(string[] args)
     {
+        // Configure and load the settings from appsettings.json
+        var builder = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+        IConfiguration configuration = builder.Build();
+
         var auditService = new AuditService();
-        var tokenService = new TokenService("Mediciel@@@1566"); // Utilisez une clé secrète forte et complexe
-        var encryptionService = new EncryptionService("yMediciel@@@1566#%$HH"); // Utilisez une clé de chiffrement forte et complexe
+        var tokenService = new TokenService(configuration["TokenService:SecretKey"]);
+        var encryptionService = new EncryptionService(configuration["EncryptionService:EncryptionKey"]);
 
         var doctorService = new DoctorService(auditService, tokenService, encryptionService);
         var adminController = new AdminController(auditService, tokenService, encryptionService);

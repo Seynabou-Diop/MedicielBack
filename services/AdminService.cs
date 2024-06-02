@@ -81,7 +81,7 @@ namespace MedicielBack.services
             using (var connection = new SqlConnection(connectionString))
             {
                 connection.Open();
-                var command = new SqlCommand("SELECT * FROM admins WHERE username = @Username", connection);
+                var command = new SqlCommand("SELECT * FROM admin WHERE username = @Username", connection);
                 command.Parameters.AddWithValue("@Username", username);
 
                 using (var reader = command.ExecuteReader())
@@ -99,8 +99,7 @@ namespace MedicielBack.services
                         var passwordHash = HashPassword(password, admin.Salt);
                         if (passwordHash == admin.PasswordHash)
                         {
-                            var token = tokenService.GenerateToken(admin.Id, "Admin");
-                            admin.Token = new Token
+                            var token = tokenService.GenerateToken(admin.Username, "Admin", DateTime.UtcNow.AddHours(1)); admin.Token = new Token
                             {
                                 Value = token,
                                 ExpirationDate = DateTime.UtcNow.AddHours(1)

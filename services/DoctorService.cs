@@ -49,12 +49,12 @@ namespace MedicielBack.services
                     command.Parameters.AddWithValue("@Salt", salt);
                     command.Parameters.AddWithValue("@CreationDate", DateTime.UtcNow);
                     command.Parameters.AddWithValue("@ModificationDate", DateTime.UtcNow);
-                    command.Parameters.AddWithValue("@Phone", encryptionService.Encrypt(phone));
+                    command.Parameters.AddWithValue("@Phone", phone);
                     command.Parameters.AddWithValue("@DateOfBirth", dateOfBirth);
                     command.Parameters.AddWithValue("@Specialty", specialty);
                     command.Parameters.AddWithValue("@Department", department);
-                    command.Parameters.AddWithValue("@Email", encryptionService.Encrypt(email));
-                    command.Parameters.AddWithValue("@Address", encryptionService.Encrypt(address));
+                    command.Parameters.AddWithValue("@Email", email);
+                    command.Parameters.AddWithValue("@Address", address);
                     command.Parameters.AddWithValue("@Gender", gender);
                     command.Parameters.AddWithValue("@Qualifications", qualifications);
                     command.Parameters.AddWithValue("@YearsOfExperience", yearsOfExperience);
@@ -118,8 +118,7 @@ namespace MedicielBack.services
                             var passwordHash = HashPassword(password, doctor.Salt);
                             if (passwordHash == doctor.PasswordHash)
                             {
-                                var token = tokenService.GenerateToken(doctor.Id, "Doctor");
-                                doctor.Token = new Token
+                                var token = tokenService.GenerateToken(doctor.Matricule, "Doctor", DateTime.UtcNow.AddHours(1)); doctor.Token = new Token
                                 {
                                     Value = token,
                                     ExpirationDate = DateTime.UtcNow.AddHours(1),

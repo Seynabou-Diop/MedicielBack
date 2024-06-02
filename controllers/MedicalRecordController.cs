@@ -49,6 +49,23 @@ namespace MedicielBack.controllers
             return recordService.UpdateRecord(doctor.Id, recordId, diagnosis, treatment, patientPhone, patientDateOfBirth, patientAddress, emergencyContactName, emergencyContactPhone, insuranceProvider, policyNumber, allergies, medications, previousConditions, notes);
         }
 
+        public bool DeleteRecord(string token, int recordId)
+        {
+            var role = doctorService.GetUserRole(token);
+            if (role != "Doctor")
+            {
+                return false; // Only doctors can delete medical records
+            }
+
+            var doctor = doctorService.GetDoctorByToken(token);
+            if (doctor == null)
+            {
+                return false;
+            }
+
+            return recordService.DeleteRecord(doctor.Id, recordId);
+        }
+
         public List<MedicalRecord> GetRecords(string token)
         {
             var role = doctorService.GetUserRole(token);
@@ -65,6 +82,7 @@ namespace MedicielBack.controllers
 
             return recordService.GetRecordsByDoctor(doctor.Id);
         }
+
 
         public MedicalRecord GetRecord(string token, int recordId)
         {
